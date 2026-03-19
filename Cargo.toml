@@ -1,0 +1,16 @@
+[package]
+name = "pyzcash"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_pyzcash"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.25", features = ["extension-module"] }
+zcash_address = "0.10"
+zcash_protocol = "0.7"
+zip321 = "0.6"
+zcash_keys = { version = "0.12", features = ["orchard", "sapling"] }
+zip32 = "0.2"
