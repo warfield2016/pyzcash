@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pyzcash demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+  .container { max-width: 720px; margin: 0 auto; padding: 32px 20px; }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  h1 span { color: #f0b90b; }
+  .subtitle { color: #8b949e; margin-bottom: 32px; font-size: 14px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; margin-bottom: 12px; color: #f0b90b; }
+  label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 4px; }
+  input, select { width: 100%; padding: 8px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #e6edf3; font-size: 14px; font-family: monospace; margin-bottom: 10px; }
+  input:focus { outline: none; border-color: #f0b90b; }
+  button { padding: 8px 16px; background: #f0b90b; color: #0d1117; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 14px; }
+  button:hover { background: #d4a50a; }
+  .output { background: #0d1117; border: 1px solid #30363d; border-radius: 4px; padding: 12px; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; margin-top: 10px; min-height: 40px; line-height: 1.5; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: 600; margin-right: 4px; }
+  .tag-green { background: #1a3a2a; color: #3fb950; }
+  .tag-blue { background: #1a2a3a; color: #58a6ff; }
+  .tag-red { background: #3a1a1a; color: #f85149; }
+  .tag-yellow { background: #3a2a0a; color: #f0b90b; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .error { color: #f85149; }
+  .sep { border-top: 1px solid #30363d; margin: 24px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1><span>pyzcash</span> demo</h1>
+  <p class="subtitle">Python bindings for Zcash's Rust libraries. Everything below runs server-side via pyzcash.</p>
+
+  <!-- Generate Wallet -->
+  <div class="card">
+    <h2>1. Generate wallet</h2>
+    <div class="row">
+      <div>
+        <label>Network</label>
+        <select id="gen-network">
+          <option value="main">Mainnet</option>
+          <option value="test">Testnet</option>
+        </select>
+      </div>
+      <div>
+        <label>Account</label>
+        <input id="gen-account" type="number" value="0" min="0">
+      </div>
+    </div>
+    <button onclick="generate()">Generate</button>
+    <div class="output" id="gen-output">Click generate to create a new wallet.</div>
+  </div>
+
+  <!-- Parse Address -->
+  <div class="card">
+    <h2>2. Parse address</h2>
+    <label>Paste any Zcash address</label>
+    <input id="parse-addr" placeholder="u1..., zs1..., t3...">
+    <button onclick="parseAddr()">Parse</button>
+    <div class="output" id="parse-output"></div>
+  </div>
+
+  <!-- Build Payment URI -->
+  <div class="card">
+    <h2>3. Build payment link</h2>
+    <label>Recipient address</label>
+    <input id="pay-addr" placeholder="u1...">
+    <div class="row">
+      <div>
+        <label>Amount (zatoshis)</label>
+        <input id="pay-amount" type="number" value="100000000" min="1">
+      </div>
+      <div>
+        <label>Memo (optional)</label>
+        <input id="pay-memo" placeholder="e.g. March rent">
+      </div>
+    </div>
+    <button onclick="buildUri()">Build URI</button>
+    <div class="output" id="pay-output"></div>
+  </div>
+
+  <!-- Parse URI -->
+  <div class="card">
+    <h2>4. Parse payment link</h2>
+    <label>Paste a zcash: URI</label>
+    <input id="uri-input" placeholder="zcash:u1...?amount=1">
+    <button onclick="parseUri()">Parse</button>
+    <div class="output" id="uri-output"></div>
+  </div>
+</div>
+
+<script>
+async function api(path, params) {
+  const qs = new URLSearchParams(params).toString();
+  const r = await fetch(`/api/${path}?${qs}`);
+  return r.json();
+}
+
+function tag(text, cls) {
+  return `<span class="tag tag-${cls}">${text}</span>`;
+}
+
+async function generate() {
+  const out = document.getElementById('gen-output');
+  out.textContent = 'Generating...';
+  const d = await api('generate', {
+    network: document.getElementById('gen-network').value,
+    account: document.getElementById('gen-account').value,
+  });
+  const receivers = [];
+  if (d.has_orchard) receivers.push(tag('Orchard', 'green'));
+  if (d.has_sapling) receivers.push(tag('Sapling', 'blue'));
+  if (d.has_transparent) receivers.push(tag('Transparent', 'yellow'));
+  out.innerHTML = `Address:\n${d.address}\n\nReceivers: ${receivers.join(' ')}\n\nViewing key:\n${d.ufvk}\n\nSeed: ${d.seed_hex}`;
+  document.getElementById('pay-addr').value = d.address;
+  document.getElementById('parse-addr').value = d.address;
+}
+
+async function parseAddr() {
+  const out = document.getElementById('parse-output');
+  const addr = document.getElementById('parse-addr').value.trim();
+  if (!addr) { out.textContent = 'Enter an address above.'; return; }
+  const d = await api('parse', { address: addr });
+  if (!d.valid) { out.innerHTML = `<span class="error">Invalid: ${d.error}</span>`; return; }
+  const tags = [];
+  tags.push(tag(d.type, 'blue'));
+  tags.push(tag(d.network, 'yellow'));
+  tags.push(d.shielded ? tag('shielded', 'green') : tag('transparent', 'red'));
+  if (d.can_receive_memo) tags.push(tag('memo OK', 'green'));
+  out.innerHTML = `Valid address\n\n${tags.join(' ')}`;
+}
+
+async function buildUri() {
+  const out = document.getElementById('pay-output');
+  const d = await api('payment-uri', {
+    address: document.getElementById('pay-addr').value.trim(),
+    amount: document.getElementById('pay-amount').value,
+    memo: document.getElementById('pay-memo').value,
+  });
+  if (d.error) { out.innerHTML = `<span class="error">${d.error}</span>`; return; }
+  out.innerHTML = `${d.total_zec} ZEC\n\n${d.uri}`;
+  document.getElementById('uri-input').value = d.uri;
+}
+
+async function parseUri() {
+  const out = document.getElementById('uri-output');
+  const uri = document.getElementById('uri-input').value.trim();
+  if (!uri) { out.textContent = 'Enter a URI above.'; return; }
+  const d = await api('parse-uri', { uri });
+  if (d.error) { out.innerHTML = `<span class="error">${d.error}</span>`; return; }
+  let lines = `Total: ${d.total_zec} ZEC\n`;
+  d.payments.forEach((p, i) => {
+    lines += `\nPayment ${i + 1}:\n`;
+    lines += `  To: ${p.address.slice(0, 40)}...\n`;
+    lines += `  Amount: ${p.amount_zec} ZEC\n`;
+    if (p.memo) lines += `  Memo: ${p.memo}\n`;
+    lines += `  ${p.shielded ? tag('shielded', 'green') : tag('transparent', 'red')}`;
+  });
+  out.innerHTML = lines;
+}
+</script>
+</body>
+</html>
