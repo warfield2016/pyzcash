@@ -1,6 +1,6 @@
 # pyzcash
 
-Python bindings for [librustzcash](https://github.com/zcash/librustzcash). Covers address parsing, ZIP-321 payment URIs, and key derivation.
+Use Zcash from Python. Parse addresses, build payment links, and generate wallets, all backed by Zcash's official Rust crypto libraries.
 
 **Alpha quality.** The API will change.
 
@@ -10,7 +10,7 @@ Requires a Rust toolchain and Python 3.9+.
 
 ```
 pip install maturin
-git clone https://github.com/user/pyzcash && cd pyzcash
+git clone https://github.com/warfield2016/pyzcash && cd pyzcash
 maturin develop
 ```
 
@@ -43,13 +43,13 @@ print(parsed.total())  # 100000000 (zatoshis)
 
 ## What it wraps
 
-Thin PyO3 bindings over these librustzcash crates:
+Thin Python layer over Zcash's official Rust libraries ([librustzcash](https://github.com/zcash/librustzcash)), connected via [PyO3](https://pyo3.rs):
 
 - **zcash_address**: parse and validate transparent, Sapling, and unified addresses
-- **zip321**: ZIP-321 payment request URIs
-- **zcash_keys**: unified spending key and viewing key derivation
+- **zip321**: payment request URIs (the `zcash:...?amount=...` links)
+- **zcash_keys**: spending key and viewing key derivation
 
-Shielded by default: key derivation produces Orchard + Sapling receivers, no transparent component.
+Privacy first: key derivation produces shielded-only addresses (Orchard + Sapling), no transparent component.
 
 ## API
 
@@ -58,7 +58,7 @@ Shielded by default: key derivation produces Orchard + Sapling receivers, no tra
 | `Network` | `Main` or `Test` enum |
 | `ZcashAddress` | Parse, validate, inspect any Zcash address |
 | `Payment` | Single payment: address + amount + optional memo |
-| `TransactionRequest` | ZIP-321 URI with one or more payments |
+| `TransactionRequest` | Payment URI with one or more payments |
 | `UnifiedSpendingKey` | Derive from seed bytes |
 | `UnifiedFullViewingKey` | Encode/decode, derive addresses |
 | `UnifiedAddress` | Inspect receiver types (Orchard, Sapling, transparent) |
