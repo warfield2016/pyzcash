@@ -21,7 +21,10 @@ DEMO_DIR = os.path.dirname(os.path.abspath(__file__))
 def handle_api(path, params):
     if path == "/api/generate":
         network = Network.Main if params.get("network", "main") == "main" else Network.Test
-        account = int(params.get("account", "0"))
+        try:
+            account = int(params.get("account", "0"))
+        except ValueError:
+            return {"error": "account must be a number"}
         seed = secrets.token_bytes(32)
         usk = UnifiedSpendingKey.from_seed(seed, network, account)
         ua = usk.default_address()
@@ -32,7 +35,6 @@ def handle_api(path, params):
             "has_sapling": ua.has_sapling(),
             "has_transparent": ua.has_transparent(),
             "ufvk": ufvk.encode(),
-            "seed_hex": seed.hex(),
         }
 
     elif path == "/api/parse":
@@ -51,7 +53,10 @@ def handle_api(path, params):
 
     elif path == "/api/payment-uri":
         addr_str = params.get("address", "")
-        amount = int(params.get("amount", "0"))
+        try:
+            amount = int(params.get("amount", "0"))
+        except ValueError:
+            return {"error": "amount must be a number"}
         memo = params.get("memo", "")
         try:
             addr = ZcashAddress.parse(addr_str)

@@ -115,7 +115,7 @@ async function generate() {
   if (d.has_orchard) receivers.push(tag('Orchard', 'green'));
   if (d.has_sapling) receivers.push(tag('Sapling', 'blue'));
   if (d.has_transparent) receivers.push(tag('Transparent', 'yellow'));
-  out.innerHTML = `Address:\n${d.address}\n\nReceivers: ${receivers.join(' ')}\n\nViewing key:\n${d.ufvk}\n\nSeed: ${d.seed_hex}`;
+  out.innerHTML = `Address:\n${d.address}\n\nReceivers: ${receivers.join(' ')}\n\nViewing key:\n${d.ufvk}`;
   document.getElementById('pay-addr').value = d.address;
   document.getElementById('parse-addr').value = d.address;
 }
